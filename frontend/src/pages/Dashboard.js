@@ -30,6 +30,7 @@ const Dashboard = () => {
   const [editIndex, setEditIndex] = useState(null);
   const [editFormData, setEditFormData] = useState({});
   const [selectedCluster, setSelectedCluster] = useState("");
+  const [userRole, setUserRole] = useState("");
 
 
   const BASE_URL = process.env.REACT_APP_API_BASE_URL;
@@ -37,6 +38,9 @@ const Dashboard = () => {
   // Fetch server data
   useEffect(() => {
     const token = localStorage.getItem("token");
+    const decoded = jwtDecode(token);
+    setUserRole(decoded.role);
+    console.log("Decoded token:", decoded);
     if (!token) {
       setError("Unauthorized");
       return;
@@ -157,7 +161,12 @@ const Dashboard = () => {
               <StyledTableCell align="right" sx={{ fontWeight: 'bold' }}> Current Owner</StyledTableCell>
               <StyledTableCell align="right" sx={{ fontWeight: 'bold' }}>Owner</StyledTableCell>
               <StyledTableCell align="right" sx={{ fontWeight: 'bold' }}>Project</StyledTableCell>
-              <StyledTableCell align="right" sx={{ fontWeight: 'bold' }}>Actions</StyledTableCell>
+              {/* ✅ Only show for admin */}
+    {userRole === "admin" && (
+      <StyledTableCell align="right" sx={{ fontWeight: 'bold' }}>
+        Actions
+      </StyledTableCell>
+    )}
             </TableRow>
           </TableHead>
 
@@ -278,39 +287,42 @@ const Dashboard = () => {
                   </StyledTableCell>
 
                   {/* Actions */}
-                  <StyledTableCell align="right">
-                    {isEditing ? (
-                      <>
-                        <Button
-                          variant="contained"
-                          color="success"
-                          size="small"
-                          onClick={() => handleSaveClick(s)}
-                          sx={{ mr: 1 }}
-                        >
-                          SAVE
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          color="error"
-                          size="small"
-                          onClick={handleCancelClick}
-                        >
-                          CANCEL
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        size="small"
-                        onClick={() => handleEditClick(s, index)}
-                        disabled={editIndex !== null} // disable other rows
-                      >
-                        EDIT
-                      </Button>
-                    )}
-                  </StyledTableCell>
+                  {userRole === "admin" && (
+  <StyledTableCell align="right">
+    {isEditing ? (
+      <>
+        <Button
+          variant="contained"
+          color="success"
+          size="small"
+          onClick={() => handleSaveClick(s)}
+          sx={{ mr: 1 }}
+        >
+          SAVE
+        </Button>
+        <Button
+          variant="outlined"
+          color="error"
+          size="small"
+          onClick={handleCancelClick}
+        >
+          CANCEL
+        </Button>
+      </>
+    ) : (
+      <Button
+        variant="contained"
+        color="primary"
+        size="small"
+        onClick={() => handleEditClick(s, index)}
+        disabled={editIndex !== null}
+      >
+        EDIT
+      </Button>
+    )}
+  </StyledTableCell>
+)}
+
                 </TableRow>
               );
             })}
