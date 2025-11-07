@@ -40,25 +40,4 @@ func TokenRequired() gin.HandlerFunc {
     }
 }
 
-// Middleware: enforce roles
-func RoleRequired(roles ...string) gin.HandlerFunc {
-    return func(c *gin.Context) {
-        val, exists := c.Get("user")
-        if !exists {
-            c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-            c.Abort()
-            return
-        }
 
-        claims := val.(*Claims)
-        for _, allowed := range roles {
-            if claims.Role == allowed {
-                c.Next()
-                return
-            }
-        }
-
-        c.JSON(http.StatusForbidden, gin.H{"error": "Access denied, insufficient permissions"})
-        c.Abort()
-    }
-}

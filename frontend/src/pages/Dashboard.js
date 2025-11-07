@@ -10,16 +10,27 @@ import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
-import DropdownMenu from "../components/DropdownMenu";
+import Box from "@mui/material/Box";
+import AppBar from "@mui/material/AppBar";
+import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
+import DrawerMenu from "../components/DropdownMenu";
+import AppBarHeader from "../components/AppBarHeader";
+
+
+const drawerWidth = 240;
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
     backgroundColor: "#04325cff",
     color: theme.palette.common.white,
     fontWeight: "bold",
+    fontSize: "0.8rem",
+    padding: "6px 12px",
   },
   [`&.${tableCellClasses.body}`]: {
-    fontSize: 14,
+    fontSize: "0.75rem",
+    padding: "6px 12px",
   },
 }));
 
@@ -32,19 +43,17 @@ const Dashboard = () => {
   const [selectedCluster, setSelectedCluster] = useState("");
   const [userRole, setUserRole] = useState("");
 
-
   const BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
   // Fetch server data
   useEffect(() => {
     const token = localStorage.getItem("token");
-    const decoded = jwtDecode(token);
-    setUserRole(decoded.role);
-    console.log("Decoded token:", decoded);
     if (!token) {
       setError("Unauthorized");
       return;
     }
+    const decoded = jwtDecode(token);
+    setUserRole(decoded.role);
 
     fetch("http://192.168.6.87:8092/api/serverinfo", {
       headers: {
@@ -52,25 +61,16 @@ const Dashboard = () => {
       },
     })
       .then((res) => res.json())
-      .then((data) => {
-        console.log("Fetched server data:", data);
-        setServers(JSON.parse(JSON.stringify(data)));
-      })
+      .then((data) => setServers(data))
       .catch((err) => setError(err.message));
   }, []);
 
-  const decoded = localStorage.getItem("token")
-    ? jwtDecode(localStorage.getItem("token"))
-    : null;
-
-  // Start editing a row
+  // Edit and Save Handlers
   const handleEditClick = (rowData, index) => {
     setEditIndex(index);
     setEditFormData({ ...rowData });
   };
 
-
-  // Handle input change
   const handleInputChange = (e, field) => {
     setEditFormData((prevData) => ({
       ...prevData,
@@ -78,7 +78,6 @@ const Dashboard = () => {
     }));
   };
 
-  // Save changes
   const handleSaveClick = () => {
     const uuid = editFormData.system_id;
 
@@ -92,28 +91,23 @@ const Dashboard = () => {
       gpu_slots: editFormData.gpu_slots,
     };
 
-    console.log("Filtered data to be sent:", filteredData);
-
     fetch(`http://192.168.6.87:8092/api/serverinfo/${uuid}`, {
       method: "PUT",
       mode: "cors",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${localStorage.getItem("token")}`, // ✅ fixed
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
       body: JSON.stringify(filteredData),
     })
       .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Failed to update server info for UUID: ${uuid}`);
-        }
+        if (!response.ok) throw new Error("Failed to update server info");
         return response.json();
       })
       .then(() => {
         alert("Server information updated successfully!");
         setEditIndex(null);
-
-        // ✅ Re-fetch only the table data
+        // Refresh data
         fetch("http://192.168.6.87:8092/api/serverinfo", {
           headers: { Authorization: localStorage.getItem("token") },
         })
@@ -123,213 +117,194 @@ const Dashboard = () => {
       })
       .catch((error) => {
         console.error("Error updating server info:", error);
-        alert("Failed to update server info. Check console for details.");
+        alert("Failed to update server info.");
       });
   };
-
-
 
   const handleCancelClick = () => {
     setEditIndex(null);
     setEditFormData({});
   };
 
-
   return (
-    <div className="p-8">
-      <DropdownMenu
+    <Box sx={{ display: "flex" }}>
+      {/* Top App Bar */}
+      <AppBarHeader />
+
+      {/* Permanent Drawer (Sidebar) */}
+      <DrawerMenu
         selectedCluster={selectedCluster}
         setSelectedCluster={setSelectedCluster}
       />
 
-      <h2>Cluster Machine Info</h2>
-      {error && <p className="text-red-500">{error}</p>}
+      {/* Main Content Area */}
+      <Box>
+         
+        {error && <p style={{ color: "red" }}>{error}</p>}
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <StyledTableCell>Cluster Machine</StyledTableCell>
-              <StyledTableCell align="right" sx={{ fontWeight: 'bold' }}>Server Name</StyledTableCell>
-              <StyledTableCell align="right" sx={{ fontWeight: 'bold' }}>vCPU</StyledTableCell>
-              <StyledTableCell align="right" sx={{ fontWeight: 'bold' }}>RAM</StyledTableCell>
-              <StyledTableCell align="right" sx={{ fontWeight: 'bold' }}>RAM slots</StyledTableCell>
-              <StyledTableCell align="right" sx={{ fontWeight: 'bold' }}>Disk</StyledTableCell>
-              <StyledTableCell align="right" sx={{ fontWeight: 'bold' }} >GPU</StyledTableCell>
-              <StyledTableCell align="right" sx={{ fontWeight: 'bold' }}>GPU slots</StyledTableCell>
-              <StyledTableCell align="right" sx={{ fontWeight: 'bold' }}>IP</StyledTableCell>
-              <StyledTableCell align="right" sx={{ fontWeight: 'bold' }}> Current Owner</StyledTableCell>
-              <StyledTableCell align="right" sx={{ fontWeight: 'bold' }}>Owner</StyledTableCell>
-              <StyledTableCell align="right" sx={{ fontWeight: 'bold' }}>Project</StyledTableCell>
-              {/* ✅ Only show for admin */}
-    {userRole === "admin" && (
-      <StyledTableCell align="right" sx={{ fontWeight: 'bold' }}>
-        Actions
-      </StyledTableCell>
-    )}
-            </TableRow>
-          </TableHead>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <StyledTableCell>Cluster Machine</StyledTableCell>
+                <StyledTableCell align="center">Server Name</StyledTableCell>
+                <StyledTableCell align="center">vCPU</StyledTableCell>
+                <StyledTableCell align="center">RAM</StyledTableCell>
+                <StyledTableCell align="center">RAM slots</StyledTableCell>
+                <StyledTableCell align="center">Disk</StyledTableCell>
+                <StyledTableCell align="center">GPU</StyledTableCell>
+                <StyledTableCell align="center">GPU slots</StyledTableCell>
+                <StyledTableCell align="center">IP</StyledTableCell>
+                <StyledTableCell align="center">Current Owner</StyledTableCell>
+                <StyledTableCell align="center">Owner</StyledTableCell>
+                <StyledTableCell align="center">Project</StyledTableCell>
+                {userRole === "admin" && (
+                  <StyledTableCell align="center">Actions</StyledTableCell>
+                )}
+              </TableRow>
+            </TableHead>
 
-          <TableBody>
-            {servers.map((s, index) => {
-              const isEditing = editIndex === index;
-
-              return (
-                <TableRow key={s.id || index}>
-                  {/* Cluster Machine */}
-                  <StyledTableCell component="th" scope="row">
-                    {isEditing ? (
-                      <TextField
-                        value={editFormData.cluster_name || ""}
-                        onChange={(e) =>
-                          handleInputChange(e, "cluster_name")
-                        }
-                        variant="standard"
-                      />
-                    ) : (
-                      s.cluster_name
+            <TableBody>
+              {servers.map((s, index) => {
+                const isEditing = editIndex === index;
+                return (
+                  <TableRow key={s.id || index}>
+                    <StyledTableCell>
+                      {isEditing ? (
+                        <TextField
+                          value={editFormData.cluster_name || ""}
+                          onChange={(e) =>
+                            handleInputChange(e, "cluster_name")
+                          }
+                          variant="standard"
+                        />
+                      ) : (
+                        s.cluster_name
+                      )}
+                    </StyledTableCell>
+                    <StyledTableCell align="center">{s.server_name}</StyledTableCell>
+                    <StyledTableCell align="center">{s.vcpu}</StyledTableCell>
+                    <StyledTableCell align="center">{s.ram_gb}</StyledTableCell>
+                    <StyledTableCell align="center">
+                      {isEditing ? (
+                        <TextField
+                          value={editFormData.ram_slots || ""}
+                          onChange={(e) => handleInputChange(e, "ram_slots")}
+                          variant="standard"
+                        />
+                      ) : (
+                        s.ram_slots
+                      )}
+                    </StyledTableCell>
+                    <StyledTableCell align="center">
+                      {Array.isArray(s.disks)
+                        ? s.disks.map((d, i) => (
+                            <div key={i}>
+                              <b>{d.name}</b> ({d.model},{" "}
+                              {d.size_gb ? d.size_gb.toFixed(1) : "N/A"} GB)
+                            </div>
+                          ))
+                        : s.disks}
+                    </StyledTableCell>
+                    <StyledTableCell align="center">
+                      {Array.isArray(s.gpus)
+                        ? s.gpus.map((g, i) => (
+                            <div key={i}>
+                              <b>{g.vendor}</b> - {g.model}
+                            </div>
+                          ))
+                        : s.gpus}
+                    </StyledTableCell>
+                    <StyledTableCell align="center">
+                      {isEditing ? (
+                        <TextField
+                          value={editFormData.gpu_slots || ""}
+                          onChange={(e) => handleInputChange(e, "gpu_slots")}
+                          variant="standard"
+                        />
+                      ) : (
+                        s.gpu_slots
+                      )}
+                    </StyledTableCell>
+                    <StyledTableCell align="center">{s.ip}</StyledTableCell>
+                    <StyledTableCell align="center">
+                      {isEditing ? (
+                        <TextField
+                          value={editFormData.current_owner || ""}
+                          onChange={(e) =>
+                            handleInputChange(e, "current_owner")
+                          }
+                          variant="standard"
+                        />
+                      ) : (
+                        s.current_owner
+                      )}
+                    </StyledTableCell>
+                    <StyledTableCell align="center">
+                      {isEditing ? (
+                        <TextField
+                          value={editFormData.owner || ""}
+                          onChange={(e) => handleInputChange(e, "owner")}
+                          variant="standard"
+                        />
+                      ) : (
+                        s.owner
+                      )}
+                    </StyledTableCell>
+                    <StyledTableCell align="center">
+                      {isEditing ? (
+                        <TextField
+                          value={editFormData.projects || ""}
+                          onChange={(e) => handleInputChange(e, "projects")}
+                          variant="standard"
+                        />
+                      ) : (
+                        s.projects
+                      )}
+                    </StyledTableCell>
+                    {userRole === "admin" && (
+                      <StyledTableCell align="center">
+                        {isEditing ? (
+                          <>
+                            <Button
+                              variant="contained"
+                              color="success"
+                              size="small"
+                              onClick={() => handleSaveClick(s)}
+                              sx={{ mr: 1 }}
+                            >
+                              SAVE
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              color="error"
+                              size="small"
+                              onClick={handleCancelClick}
+                            >
+                              CANCEL
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            size="small"
+                            onClick={() => handleEditClick(s, index)}
+                            disabled={editIndex !== null}
+                          >
+                            EDIT
+                          </Button>
+                        )}
+                      </StyledTableCell>
                     )}
-                  </StyledTableCell>
-
-                  <StyledTableCell align="right">{s.server_name}</StyledTableCell>
-                  <StyledTableCell align="right">{s.vcpu}</StyledTableCell>
-                  <StyledTableCell align="right">{s.ram_gb}</StyledTableCell>
-
-                  {/* RAM slots */}
-                  <StyledTableCell align="right">
-                    {isEditing ? (
-                      <TextField
-                        value={editFormData.ram_slots || ""}
-                        onChange={(e) => handleInputChange(e, "ram_slots")}
-                        variant="standard"
-                      />
-                    ) : (
-                      s.ram_slots
-                    )}
-                  </StyledTableCell>
-
-                  {/* Disk */}
-                  <StyledTableCell align="right">
-                    {Array.isArray(s.disks)
-                      ? s.disks.map((d, i) => (
-                        <div key={i}>
-                          <b>{d.name}</b> ({d.model},{" "}
-                          {d.size_gb ? d.size_gb.toFixed(1) : "N/A"} GB)
-                        </div>
-                      ))
-                      : s.disks}
-                  </StyledTableCell>
-
-                  {/* GPU */}
-                  <StyledTableCell align="right">
-                    {Array.isArray(s.gpus)
-                      ? s.gpus.map((g, i) => (
-                        <div key={i}>
-                          <b>{g.vendor}</b> - {g.model}
-                        </div>
-                      ))
-                      : s.gpus}
-                  </StyledTableCell>
-
-                  {/* GPU slots */}
-                  <StyledTableCell align="right">
-                    {isEditing ? (
-                      <TextField
-                        value={editFormData.gpu_slots || ""}
-                        onChange={(e) => handleInputChange(e, "gpu_slots")}
-                        variant="standard"
-                      />
-                    ) : (
-                      s.gpu_slots
-                    )}
-                  </StyledTableCell>
-
-                  {/* IP */}
-                  <StyledTableCell align="right">{s.ip}</StyledTableCell>
-
-                  {/* Current Owner */}
-                  <StyledTableCell align="right">
-                    {isEditing ? (
-                      <TextField
-                        value={editFormData.current_owner || ""}
-                        onChange={(e) => handleInputChange(e, "current_owner")}
-                        variant="standard"
-                      />
-                    ) : (
-                      s.current_owner
-                    )}
-                  </StyledTableCell>
-
-                  {/* Owner */}
-                  <StyledTableCell align="right">
-                    {isEditing ? (
-                      <TextField
-                        value={editFormData.owner || ""}
-                        onChange={(e) => handleInputChange(e, "owner")}
-                        variant="standard"
-                      />
-                    ) : (
-                      s.owner
-                    )}
-                  </StyledTableCell>
-
-                  {/* Project */}
-                  <StyledTableCell align="right">
-                    {isEditing ? (
-                      <TextField
-                        value={editFormData.projects || ""}
-                        onChange={(e) => handleInputChange(e, "projects")}
-                        variant="standard"
-                      />
-                    ) : (
-                      s.projects
-                    )}
-                  </StyledTableCell>
-
-                  {/* Actions */}
-                  {userRole === "admin" && (
-  <StyledTableCell align="right">
-    {isEditing ? (
-      <>
-        <Button
-          variant="contained"
-          color="success"
-          size="small"
-          onClick={() => handleSaveClick(s)}
-          sx={{ mr: 1 }}
-        >
-          SAVE
-        </Button>
-        <Button
-          variant="outlined"
-          color="error"
-          size="small"
-          onClick={handleCancelClick}
-        >
-          CANCEL
-        </Button>
-      </>
-    ) : (
-      <Button
-        variant="contained"
-        color="primary"
-        size="small"
-        onClick={() => handleEditClick(s, index)}
-        disabled={editIndex !== null}
-      >
-        EDIT
-      </Button>
-    )}
-  </StyledTableCell>
-)}
-
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </div>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+    </Box>
   );
 };
 

@@ -320,6 +320,41 @@ func HandleGetGPUInfo(c *gin.Context) {
     c.JSON(http.StatusOK, gpuInfos)
 }
 
+// -------- POST: Add a new GPU entry --------
+func HandleAddGPUInfo(c *gin.Context) {
+    type GPUInfo struct {
+        IP        string                   `json:"ip"`
+        GPUCards  []map[string]interface{}  `json:"gpu_cards"`
+        Total     int                      `json:"total"`
+        Status    string                   `json:"status"`
+    }
+
+    var gpu GPUInfo
+    if err := c.ShouldBindJSON(&gpu); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON: " + err.Error()})
+        return
+    }
+
+    // Marshal gpu_cards into JSON
+    gpuCardsJSON, err := json.Marshal(gpu.GPUCards)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encode GPU cards"})
+        return
+    }
+
+    _, err = DB.Exec(
+        context.Background(),
+        `INSERT INTO gpu_info (ip, gpu_cards, total, status, created_at)
+         VALUES ($1, $2, $3, $4, NOW())`,
+        gpu.IP, gpuCardsJSON, gpu.Total, gpu.Status,
+    )
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert data: " + err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusCreated, gin.H{"message": "GPU info added successfully"})
+}
 
 
 

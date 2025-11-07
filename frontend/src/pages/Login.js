@@ -18,6 +18,7 @@ import {
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import AppBarHeader from "../components/AppBarHeader";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -45,6 +46,7 @@ export default function Login() {
 
   return (
     <Container component="main" maxWidth="xs">
+      <AppBarHeader />
       <Paper
           elevation={6}
           sx={{

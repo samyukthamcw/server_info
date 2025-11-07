@@ -1,18 +1,22 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
-import InputLabel from "@mui/material/InputLabel";
-import MenuItem from "@mui/material/MenuItem";
-import FormControl from "@mui/material/FormControl";
-import Select from "@mui/material/Select";
+import Drawer from "@mui/material/Drawer";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import MemoryIcon from "@mui/icons-material/Memory";
 
-const DropdownMenu = ({ selectedCluster, setSelectedCluster }) => {
+const drawerWidth = 200; // Width of the sidebar
+
+const DrawerMenu = ({ selectedCluster, setSelectedCluster }) => {
   const navigate = useNavigate();
 
-  const handleChange = (event) => {
-    const value = event.target.value;
+  const handleSelect = (value) => {
     setSelectedCluster(value);
-
     if (value === "gpu-info") {
       navigate("/gpu");
     } else if (value === "cluster-info") {
@@ -21,26 +25,53 @@ const DropdownMenu = ({ selectedCluster, setSelectedCluster }) => {
   };
 
   return (
-    <Box
+    <Drawer
+      variant="permanent"
+      anchor="left"
+      sx={{
+        width: drawerWidth,
+        flexShrink: 0,
+        "& .MuiDrawer-paper": {
+          width: drawerWidth,
+          boxSizing: "border-box",
+          backgroundColor: "#04325cff",
+          color: "white",
+          top: 64,
+          height: "calc(100% - 64px)",
+        },
+      }}
     >
-      <FormControl sx={{ minWidth: 200, background: "white" }}>
-        <InputLabel id="cluster-select-label">Select View</InputLabel>
-        <Select
-          labelId="cluster-select-label"
-          value={selectedCluster}
-          label="Select View"
-          onChange={handleChange}
-        >
-          <MenuItem value="cluster-info">
-            <em>Cluster Machine Info</em>
-          </MenuItem>
-          <MenuItem value="gpu-info">
-            <em>GPU Info</em>
-          </MenuItem>
-        </Select>
-      </FormControl>
-    </Box>
+      <Box sx={{ overflow: "auto", mt: 1 }}>
+        <List>
+          <ListItem disablePadding>
+            <ListItemButton
+              onClick={() => handleSelect("cluster-info")}
+              selected={selectedCluster === "cluster-info"}
+              sx={{
+                "&.Mui-selected": { backgroundColor: "#04325cff" },
+                "&:hover": { backgroundColor: "#04325cff" },
+              }}
+            >
+              <ListItemText primary="Cluster Machine Info" />
+            </ListItemButton>
+          </ListItem>
+
+          <ListItem disablePadding>
+            <ListItemButton
+              onClick={() => handleSelect("gpu-info")}
+              selected={selectedCluster === "gpu-info"}
+              sx={{
+                "&.Mui-selected": { backgroundColor: "#04325cff" },
+                "&:hover": { backgroundColor: "#04325cff" },
+              }}
+            >
+              <ListItemText primary="GPU Info" />
+            </ListItemButton>
+          </ListItem>
+        </List>
+      </Box>
+    </Drawer>
   );
 };
 
-export default DropdownMenu;
+export default DrawerMenu;

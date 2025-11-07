@@ -22,11 +22,12 @@ func main() {
     r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
-    AllowOrigins:     []string{"http://localhost:3000", "http://192.168.5.113:3001", "http://192.168.56.1:3000"},
+    AllowAllOrigins:  true,
     AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
     AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-    AllowCredentials: true,
+    AllowCredentials: false,
 }))
+
 
 
 
@@ -47,13 +48,12 @@ func main() {
         api.GET("/serverinfo", HandleGetServerInfo)
         api.PUT("/serverinfo/:uuid", UpdateServerInfo)
         api.GET("/gpuinfo", HandleGetGPUInfo)
+        api.POST("/gpuinfo", HandleAddGPUInfo)
+        api.PUT("/gpuinfo/:id", HandleUpdateGPUInfo)
+        api.DELETE("/gpuinfo/:id", HandleDeleteGPUInfo)
 
     }
 
-    // Admin-only route example
-    api.GET("/admin", RoleRequired("admin"), func(c *gin.Context) {
-        c.JSON(200, gin.H{"message": "Welcome Admin!"})
-    })
 
     log.Println("Server running on port 8092")
     if err := r.Run("0.0.0.0:8092"); err != nil {
