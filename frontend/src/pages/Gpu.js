@@ -191,9 +191,16 @@ const GPU = () => {
       <AppBarHeader />
       <DropdownMenu selectedCluster={selectedCluster} setSelectedCluster={setSelectedCluster} />
 
-      <div className="p-8">
+      <Box
+        sx={{
+          position: "absolute",
+          top: "80px",         // below AppBar
+          left: "270px",       // right of sidebar
+          width: "70%",        // adjust as needed
+        }}
+      >
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-          <h2 style={{ margin: 0 }}>GPU Information</h2>
+          <h2 style={{ margin: 0 }}></h2>
           {role === "admin" && (
             <Tooltip title="Add GPU Record">
               <IconButton onClick={handleAddOpen}>
@@ -229,10 +236,10 @@ const GPU = () => {
                     <StyledTableCell align="center">
                       {Array.isArray(row.gpu_cards) && row.gpu_cards.length > 0
                         ? row.gpu_cards.map((gpu, i) => (
-                            <div key={i}>
-                              {gpu.model} ({gpu.memory_gb} GB)
-                            </div>
-                          ))
+                          <div key={i}>
+                            {gpu.model} ({gpu.memory_gb} GB)
+                          </div>
+                        ))
                         : "N/A"}
                     </StyledTableCell>
                     <StyledTableCell align="center">{row.total ?? 0}</StyledTableCell>
@@ -259,7 +266,7 @@ const GPU = () => {
             </TableBody>
           </Table>
         </TableContainer>
-      </div>
+      </Box>
 
       {/* Add Dialog */}
       <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">

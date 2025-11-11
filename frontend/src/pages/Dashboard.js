@@ -51,7 +51,7 @@ const Dashboard = () => {
   const [toast, setToast] = useState({ open: false, msg: "", severity: "success" });
 
   const API_BASE = "http://localhost:8092/api/serverinfo";
-  
+
   // Fetch server data
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -176,10 +176,25 @@ const Dashboard = () => {
       />
 
       {/* Main Content */}
-      <Box sx={{ flexGrow: 1, p: 3 }}>
+      <Box
+        sx={{
+          flexGrow: 1,
+          position: "absolute",
+          top: "150px",  
+          left: "270px",      
+          width: "calc(100% - 300px)", 
+          paddingRight: "40px",
+        }}
+      >
         {error && <p style={{ color: "red" }}>{error}</p>}
 
-        <TableContainer component={Paper}>
+        <TableContainer component={Paper} sx={{
+          width: "100%",
+          overflowX: "hidden", 
+          overflowY: "hidden",
+          scrollbarWidth: "none", 
+          "&::-webkit-scrollbar": { display: "none" }, 
+        }}>
           <Table>
             <TableHead>
               <TableRow>
@@ -237,20 +252,20 @@ const Dashboard = () => {
                     <StyledTableCell align="center">
                       {Array.isArray(s.disks)
                         ? s.disks.map((d, i) => (
-                            <div key={i}>
-                              <b>{d.name}</b> ({d.model},{" "}
-                              {d.size_gb ? d.size_gb.toFixed(1) : "N/A"} GB)
-                            </div>
-                          ))
+                          <div key={i}>
+                            <b>{d.name}</b> ({d.model},{" "}
+                            {d.size_gb ? d.size_gb.toFixed(1) : "N/A"} GB)
+                          </div>
+                        ))
                         : s.disks}
                     </StyledTableCell>
                     <StyledTableCell align="center">
                       {Array.isArray(s.gpus)
                         ? s.gpus.map((g, i) => (
-                            <div key={i}>
-                              <b>{g.vendor}</b> - {g.model}
-                            </div>
-                          ))
+                          <div key={i}>
+                            <b>{g.vendor}</b> - {g.model}
+                          </div>
+                        ))
                         : s.gpus}
                     </StyledTableCell>
                     <StyledTableCell align="center">
