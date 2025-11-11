@@ -214,7 +214,7 @@ const GPU = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <StyledTableCell align="center">ID</StyledTableCell>
+                {/* <StyledTableCell align="center">ID</StyledTableCell> */}
                 <StyledTableCell align="center">GPU Cards</StyledTableCell>
                 <StyledTableCell align="center">Total</StyledTableCell>
                 <StyledTableCell align="center">Status</StyledTableCell>
@@ -232,7 +232,7 @@ const GPU = () => {
               ) : (
                 gpuData.map((row, index) => (
                   <TableRow key={index}>
-                    <StyledTableCell align="center">{row.id}</StyledTableCell>
+                    {/* <StyledTableCell align="center">{row.id}</StyledTableCell> */}
                     <StyledTableCell align="center">
                       {Array.isArray(row.gpu_cards) && row.gpu_cards.length > 0
                         ? row.gpu_cards.map((gpu, i) => (

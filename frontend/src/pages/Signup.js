@@ -15,9 +15,8 @@ import {
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import { useNavigate } from "react-router-dom"; 
+import { useNavigate } from "react-router-dom";
 import AppBarHeader from "../components/AppBarHeader";
-
 
 export default function Signup() {
   const [username, setUsername] = useState("");
@@ -25,7 +24,7 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("user");
   const [showPassword, setShowPassword] = useState(false);
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
 
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -46,35 +45,50 @@ export default function Signup() {
   };
 
   return (
-    <Container component="main" maxWidth="xs">
+    <Container
+      component="main"
+      maxWidth="xs"
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "80vh",
+      }}
+    >
       <AppBarHeader />
       <Paper
-        elevation={6}
+        elevation={8}
         sx={{
-          mt: 8,
-          p: 4,
+          mt: 2,
+          p: 3,
+          width: "320px",          // ✅ reduced width
+          maxWidth: "90%",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          borderRadius: 3,
+          borderRadius: 2,
         }}
       >
-        <Avatar sx={{ m: 1, bgcolor: "secondary.main" }}>
-          <LockOutlinedIcon />
+        <Avatar sx={{ m: 1, bgcolor: "secondary.main", width: 40, height: 40 }}>
+          <LockOutlinedIcon fontSize="small" />
         </Avatar>
-        <Typography component="h1" variant="h5">
+        <Typography component="h1" variant="h6" sx={{ mb: 1 }}>
           Sign Up
         </Typography>
-        <Box component="form" onSubmit={handleSignup} sx={{ mt: 1, width: "100%" }}>
+
+        <Box component="form" onSubmit={handleSignup} sx={{ width: "100%" }}>
           <TextField
-            margin="normal"
+            size="small"
+            margin="dense"
             fullWidth
             label="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
           <TextField
-            margin="normal"
+            size="small"
+            margin="dense"
             fullWidth
             label="Email"
             type="email"
@@ -82,7 +96,8 @@ export default function Signup() {
             onChange={(e) => setEmail(e.target.value)}
           />
           <TextField
-            margin="normal"
+            size="small"
+            margin="dense"
             fullWidth
             label="Password"
             type={showPassword ? "text" : "password"}
@@ -94,6 +109,7 @@ export default function Signup() {
                   <IconButton
                     onClick={() => setShowPassword(!showPassword)}
                     edge="end"
+                    size="small"
                   >
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
@@ -102,7 +118,8 @@ export default function Signup() {
             }}
           />
           <TextField
-            margin="normal"
+            size="small"
+            margin="dense"
             fullWidth
             select
             label="Role"
@@ -117,12 +134,18 @@ export default function Signup() {
             type="submit"
             fullWidth
             variant="contained"
-            sx={{ mt: 2, mb: 2, borderRadius: 2 }}
+            sx={{ mt: 2, mb: 1, py: 1, fontSize: "0.9rem", borderRadius: 2 }}
           >
             Sign Up
           </Button>
 
-          <Link href="/login" variant="body2" display="block" textAlign="center">
+          <Link
+            href="/login"
+            variant="body2"
+            display="block"
+            textAlign="center"
+            sx={{ fontSize: "0.85rem" }}
+          >
             Already have an account? Log in
           </Link>
         </Box>
