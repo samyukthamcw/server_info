@@ -27,7 +27,7 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    const res = await fetch("http://192.168.6.87:8092/login", {
+    const res = await fetch("http://localhost:8092/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),

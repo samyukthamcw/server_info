@@ -1,6 +1,6 @@
 module system_config.go
 
-go 1.24.1
+go 1.18
 
 require github.com/jaypipes/ghw v0.20.0
 

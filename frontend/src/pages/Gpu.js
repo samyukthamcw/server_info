@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react";
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
   Box, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, TextField, Stack, Snackbar, Alert
+  Button, TextField, Stack, Snackbar, Alert, Typography
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/AddCircleOutline";
+import DeleteIcon from "@mui/icons-material/Delete";
 import { jwtDecode } from "jwt-decode";
 import DropdownMenu from "../components/DropdownMenu";
 import AppBarHeader from "../components/AppBarHeader";
@@ -21,23 +22,20 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   },
 }));
 
-const API_BASE = "http://192.168.6.87:8092/api/gpuinfo";
-
-const GET_URL = `${API_BASE}`;
-const POST_URL = `${API_BASE}`;
-
-const emptyForm = {
-  ip: "",
-  status: "",
-  total: "",
-  gpu_cards: [{ model: "", memory_gb: "" }],
-};
+const API_BASE = "http://localhost:8092/api/gpuinfo";
 
 const GPU = () => {
   const [gpuData, setGpuData] = useState([]);
   const [selectedCluster, setSelectedCluster] = useState("");
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(emptyForm);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedIP, setSelectedIP] = useState("");
+  const [form, setForm] = useState({
+    ip: "",
+    status: "",
+    total: "",
+    gpu_cards: [{ model: "", memory_gb: "" }],
+  });
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ open: false, msg: "", severity: "success" });
   const [role, setRole] = useState("");
@@ -60,7 +58,7 @@ const GPU = () => {
   // Fetch GPU data
   useEffect(() => {
     if (!token) return;
-    fetch(GET_URL, {
+    fetch(API_BASE, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -78,17 +76,20 @@ const GPU = () => {
       });
   }, [token]);
 
-  // Dialog control
+  // Add Dialog control
   const handleAddOpen = () => {
-    setForm(emptyForm);
+    setForm({
+      ip: "",
+      status: "",
+      total: "",
+      gpu_cards: [{ model: "", memory_gb: "" }],
+    });
     setOpen(true);
   };
 
-  const handleClose = () => {
-    if (!saving) setOpen(false);
-  };
+  const handleClose = () => !saving && setOpen(false);
 
-  // Form handling
+  // GPU Card Handlers
   const handleCardChange = (idx, key, value) => {
     setForm((prev) => {
       const cards = [...prev.gpu_cards];
@@ -109,7 +110,7 @@ const GPU = () => {
       gpu_cards: prev.gpu_cards.filter((_, i) => i !== idx),
     }));
 
-  // Save (POST only)
+  // Save New Record
   const handleSave = async () => {
     if (role !== "admin") {
       setToast({ open: true, msg: "Permission denied", severity: "error" });
@@ -137,7 +138,7 @@ const GPU = () => {
 
     setSaving(true);
     try {
-      const res = await fetch(POST_URL, {
+      const res = await fetch(API_BASE, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -148,7 +149,6 @@ const GPU = () => {
 
       if (!res.ok) throw new Error("POST failed");
 
-      // Optimistic update
       setGpuData((prev) => [payload, ...prev]);
       setToast({ open: true, msg: "Row added successfully", severity: "success" });
       setOpen(false);
@@ -160,13 +160,42 @@ const GPU = () => {
     }
   };
 
+  // Delete Handlers
+  const handleDeleteClick = (ip) => {
+    setSelectedIP(ip);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setConfirmOpen(false);
+    if (!selectedIP) return;
+
+    try {
+      const res = await fetch(API_BASE, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ ip: selectedIP }),
+      });
+
+      if (!res.ok) throw new Error("Failed to delete record");
+
+      setGpuData((prev) => prev.filter((row) => row.ip !== selectedIP));
+      setToast({ open: true, msg: "Record deleted successfully", severity: "success" });
+    } catch (e) {
+      console.error(e);
+      setToast({ open: true, msg: "Failed to delete record", severity: "error" });
+    } finally {
+      setSelectedIP("");
+    }
+  };
+
   return (
     <div>
       <AppBarHeader />
-      <DropdownMenu
-        selectedCluster={selectedCluster}
-        setSelectedCluster={setSelectedCluster}
-      />
+      <DropdownMenu selectedCluster={selectedCluster} setSelectedCluster={setSelectedCluster} />
 
       <div className="p-8">
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
@@ -188,13 +217,14 @@ const GPU = () => {
                 <StyledTableCell align="center">GPU Cards</StyledTableCell>
                 <StyledTableCell align="center">Total</StyledTableCell>
                 <StyledTableCell align="center">Status</StyledTableCell>
+                {role === "admin" && <StyledTableCell align="center">Actions</StyledTableCell>}
               </TableRow>
             </TableHead>
 
             <TableBody>
               {gpuData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} align="center">
+                  <TableCell colSpan={role === "admin" ? 5 : 4} align="center">
                     No GPU data available.
                   </TableCell>
                 </TableRow>
@@ -213,6 +243,22 @@ const GPU = () => {
                     </StyledTableCell>
                     <StyledTableCell align="center">{row.total ?? 0}</StyledTableCell>
                     <StyledTableCell align="center">{row.status || "-"}</StyledTableCell>
+
+                    {role === "admin" && (
+                      <StyledTableCell align="center">
+                        <Tooltip title="Delete Record">
+                          <IconButton
+                            onClick={() => handleDeleteClick(row.ip)}
+                            sx={{
+                              color: "grey.600",
+                              "&:hover": { color: "red" },
+                            }}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </StyledTableCell>
+                    )}
                   </TableRow>
                 ))
               )}
@@ -284,6 +330,20 @@ const GPU = () => {
           </Button>
           <Button onClick={handleSave} disabled={saving} variant="contained">
             {saving ? "Saving..." : "Save"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+        <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogContent dividers>
+          <Typography>Are you sure you want to delete GPU entry for IP: {selectedIP}?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+          <Button color="error" onClick={handleConfirmDelete} variant="contained">
+            Delete
           </Button>
         </DialogActions>
       </Dialog>

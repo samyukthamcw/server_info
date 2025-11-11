@@ -1,54 +1,54 @@
 package main
 
 import (
-    "context"
-    "encoding/json"
-    "fmt"
-    "log"
-    "net/http"
-    "strconv"
-    "time"
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"strconv"
+	"time"
 
-    "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 )
 
 // ---------- Structs for Incoming Data ----------
 
 type CPUInfo struct {
-    Vendor string `json:"vendor"`
-    Model  string `json:"model"`
-    Cores  int    `json:"cores"`
+	Vendor string `json:"vendor"`
+	Model  string `json:"model"`
+	Cores  int    `json:"cores"`
 }
 
 type GPUInfo struct {
-    Vendor string `json:"vendor"`
-    Model  string `json:"model"`
+	Vendor string `json:"vendor"`
+	Model  string `json:"model"`
 }
 
 type DiskInfo struct {
-    Name       string  `json:"name"`
-    Vendor     string  `json:"vendor"`
-    Model      string  `json:"model"`
-    SizeGB     float64 `json:"size_gb"`
-    DriveType  string  `json:"drive_type"`
-    IsExternal bool    `json:"is_external"`
+	Name       string  `json:"name"`
+	Vendor     string  `json:"vendor"`
+	Model      string  `json:"model"`
+	SizeGB     float64 `json:"size_gb"`
+	DriveType  string  `json:"drive_type"`
+	IsExternal bool    `json:"is_external"`
 }
 
 type NetworkInfo struct {
-    Name       string `json:"name"`
-    MACAddress string `json:"mac_address"`
-    IsVirtual  bool   `json:"is_virtual"`
+	Name       string `json:"name"`
+	MACAddress string `json:"mac_address"`
+	IsVirtual  bool   `json:"is_virtual"`
 }
 
 type MachineInfo struct {
-    Hostname    string        `json:"hostname"`
-    UUID        string        `json:"uuid"`
-    MemoryGB    float64       `json:"memory_gb"`
-    CPUs        []CPUInfo     `json:"cpus"`
-    GPUs        []GPUInfo     `json:"gpus"`
-    Disks       []DiskInfo    `json:"disks"`
-    Network     []NetworkInfo `json:"network"`
-    CollectedAt time.Time     `json:"collected_at"`
+	Hostname    string        `json:"hostname"`
+	UUID        string        `json:"uuid"`
+	MemoryGB    float64       `json:"memory_gb"`
+	CPUs        []CPUInfo     `json:"cpus"`
+	GPUs        []GPUInfo     `json:"gpus"`
+	Disks       []DiskInfo    `json:"disks"`
+	Network     []NetworkInfo `json:"network"`
+	CollectedAt time.Time     `json:"collected_at"`
 }
 
 // ---------- Flexible Int Type (accepts number or string) ----------
@@ -56,62 +56,61 @@ type MachineInfo struct {
 type FlexibleInt int
 
 func (f *FlexibleInt) UnmarshalJSON(b []byte) error {
-    var v interface{}
-    if err := json.Unmarshal(b, &v); err != nil {
-        return err
-    }
-    switch val := v.(type) {
-    case float64:
-        *f = FlexibleInt(int(val))
-    case string:
-        if val == "" {
-            *f = 0
-            return nil
-        }
-        i, err := strconv.Atoi(val)
-        if err != nil {
-            return fmt.Errorf("invalid int value: %v", val)
-        }
-        *f = FlexibleInt(i)
-    default:
-        return fmt.Errorf("unsupported type for FlexibleInt: %T", v)
-    }
-    return nil
+	var v interface{}
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	switch val := v.(type) {
+	case float64:
+		*f = FlexibleInt(int(val))
+	case string:
+		if val == "" {
+			*f = 0
+			return nil
+		}
+		i, err := strconv.Atoi(val)
+		if err != nil {
+			return fmt.Errorf("invalid int value: %v", val)
+		}
+		*f = FlexibleInt(i)
+	default:
+		return fmt.Errorf("unsupported type for FlexibleInt: %T", v)
+	}
+	return nil
 }
 
 // ---------- Struct for Editable Data ----------
 
 type ServerUpdate struct {
-    UUID         string      `json:"uuid"`
-    ClusterName  string      `json:"cluster_name"`
-    Owner        string      `json:"owner"`
-    CurrentOwner string      `json:"current_owner"`
-    Projects     string      `json:"projects"`
-    RamSlots     FlexibleInt `json:"ram_slots"`
-    GPUSlots     FlexibleInt `json:"gpu_slots"`
+	UUID         string      `json:"uuid"`
+	ClusterName  string      `json:"cluster_name"`
+	Owner        string      `json:"owner"`
+	CurrentOwner string      `json:"current_owner"`
+	Projects     string      `json:"projects"`
+	RamSlots     FlexibleInt `json:"ram_slots"`
+	GPUSlots     FlexibleInt `json:"gpu_slots"`
 }
-
 
 // ---------- Handlers ----------
 
 func HandleMachineInfo(c *gin.Context) {
-    var data MachineInfo
-    if err := c.ShouldBindJSON(&data); err != nil {
-        log.Printf("Error parsing JSON: %v", err)
-        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-        return
-    }
+	var data MachineInfo
+	if err := c.ShouldBindJSON(&data); err != nil {
+		log.Printf("Error parsing JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-    clientIP := c.ClientIP()
-    disksJSON, _ := json.Marshal(data.Disks)
-    gpusJSON, _ := json.Marshal(data.GPUs)
+	clientIP := c.ClientIP()
+	disksJSON, _ := json.Marshal(data.Disks)
+	gpusJSON, _ := json.Marshal(data.GPUs)
 
-    vcpu := 0
-    if len(data.CPUs) > 0 {
-        vcpu = data.CPUs[0].Cores
-    }
+	vcpu := 0
+	if len(data.CPUs) > 0 {
+		vcpu = data.CPUs[0].Cores
+	}
 
-    query := `
+	query := `
     INSERT INTO server_info (
         cluster_name, server_name, ip, system_id,
         projects, owner, current_owner,
@@ -133,43 +132,43 @@ func HandleMachineInfo(c *gin.Context) {
         gpus = EXCLUDED.gpus,
         collected_at = EXCLUDED.collected_at;`
 
-    _, err := DB.Exec(
-        context.Background(),
-        query,
-        data.Hostname,
-        clientIP,
-        data.UUID,
-        data.MemoryGB,
-        disksJSON,
-        vcpu,
-        gpusJSON,
-        data.CollectedAt,
-    )
+	_, err := DB.Exec(
+		context.Background(),
+		query,
+		data.Hostname,
+		clientIP,
+		data.UUID,
+		data.MemoryGB,
+		disksJSON,
+		vcpu,
+		gpusJSON,
+		data.CollectedAt,
+	)
 
-    if err != nil {
-        log.Printf("DB insert/update error: %v", err)
-        c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": err.Error()})
-        return
-    }
+	if err != nil {
+		log.Printf("DB insert/update error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": err.Error()})
+		return
+	}
 
-    log.Printf("Received data from %s (%s)", data.Hostname, clientIP)
-    c.JSON(http.StatusOK, gin.H{"status": "success"})
+	log.Printf("Received data from %s (%s)", data.Hostname, clientIP)
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
 // ---------- PUT /api/serverinfo/:uuid ----------
 func UpdateServerInfo(c *gin.Context) {
-    uuid := c.Param("uuid")
+	uuid := c.Param("uuid")
 
-    var updateData ServerUpdate
-    if err := c.ShouldBindJSON(&updateData); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{
-            "error":   "Invalid JSON payload",
-            "details": err.Error(),
-        })
-        return
-    }
+	var updateData ServerUpdate
+	if err := c.ShouldBindJSON(&updateData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid JSON payload",
+			"details": err.Error(),
+		})
+		return
+	}
 
-    query := `
+	query := `
         UPDATE server_info
         SET
             cluster_name = $1,
@@ -182,34 +181,34 @@ func UpdateServerInfo(c *gin.Context) {
         RETURNING id;
     `
 
-    var updatedID int
-    err := DB.QueryRow(context.Background(), query,
-        updateData.ClusterName,
-        updateData.Owner,
-        updateData.CurrentOwner,
-        updateData.Projects,
-        int(updateData.RamSlots),
-        int(updateData.GPUSlots),
-        uuid,
-    ).Scan(&updatedID)
+	var updatedID int
+	err := DB.QueryRow(context.Background(), query,
+		updateData.ClusterName,
+		updateData.Owner,
+		updateData.CurrentOwner,
+		updateData.Projects,
+		int(updateData.RamSlots),
+		int(updateData.GPUSlots),
+		uuid,
+	).Scan(&updatedID)
 
-    if err != nil {
-        log.Printf("Failed to update server info for UUID %s: %v", uuid, err)
-        c.JSON(http.StatusInternalServerError, gin.H{
-            "error": fmt.Sprintf("Failed to update server info for UUID %s", uuid),
-        })
-        return
-    }
+	if err != nil {
+		log.Printf("Failed to update server info for UUID %s: %v", uuid, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("Failed to update server info for UUID %s", uuid),
+		})
+		return
+	}
 
-    c.JSON(http.StatusOK, gin.H{
-        "message": "Server info updated successfully",
-        "uuid":    uuid,
-        "id":      updatedID,
-    })
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Server info updated successfully",
+		"uuid":    uuid,
+		"id":      updatedID,
+	})
 }
 
 func HandleGetServerInfo(c *gin.Context) {
-    rows, err := DB.Query(context.Background(), `
+	rows, err := DB.Query(context.Background(), `
         SELECT
             cluster_name, server_name, ip, system_id,
             projects, owner, current_owner,
@@ -217,144 +216,212 @@ func HandleGetServerInfo(c *gin.Context) {
             vcpu, gpus, gpu_slots, pcie, collected_at
         FROM server_info ORDER BY collected_at DESC;
     `)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        return
-    }
-    defer rows.Close()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
 
-    var servers []map[string]interface{}
+	var servers []map[string]interface{}
 
-    for rows.Next() {
-        var (
-            clusterName, serverName, ip, systemID, projects, owner, currentOwner, pcie *string
-            ramGB                                                                     *float64
-            ramSlots, vcpu, gpuSlots                                                  *int
-            disks, gpus                                                               []byte
-            collectedAt                                                               time.Time
-        )
-        err := rows.Scan(
-            &clusterName, &serverName, &ip, &systemID,
-            &projects, &owner, &currentOwner,
-            &ramGB, &ramSlots, &disks,
-            &vcpu, &gpus, &gpuSlots, &pcie, &collectedAt,
-        )
-        if err != nil {
-            c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-            return
-        }
+	for rows.Next() {
+		var (
+			clusterName, serverName, ip, systemID, projects, owner, currentOwner, pcie *string
+			ramGB                                                                      *float64
+			ramSlots, vcpu, gpuSlots                                                   *int
+			disks, gpus                                                                []byte
+			collectedAt                                                                time.Time
+		)
+		err := rows.Scan(
+			&clusterName, &serverName, &ip, &systemID,
+			&projects, &owner, &currentOwner,
+			&ramGB, &ramSlots, &disks,
+			&vcpu, &gpus, &gpuSlots, &pcie, &collectedAt,
+		)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 
-        var diskData, gpuData interface{}
-        json.Unmarshal(disks, &diskData)
-        json.Unmarshal(gpus, &gpuData)
+		var diskData, gpuData interface{}
+		json.Unmarshal(disks, &diskData)
+		json.Unmarshal(gpus, &gpuData)
 
-        server := map[string]interface{}{
-            "cluster_name":  clusterName,
-            "server_name":   serverName,
-            "ip":            ip,
-            "system_id":     systemID,
-            "projects":      projects,
-            "owner":         owner,
-            "current_owner": currentOwner,
-            "ram_gb":        ramGB,
-            "ram_slots":     ramSlots,
-            "disks":         diskData,
-            "vcpu":          vcpu,
-            "gpus":          gpuData,
-            "gpu_slots":     gpuSlots,
-            "pcie":          pcie,
-            "collected_at":  collectedAt,
-        }
-        servers = append(servers, server)
-    }
+		server := map[string]interface{}{
+			"cluster_name":  clusterName,
+			"server_name":   serverName,
+			"ip":            ip,
+			"system_id":     systemID,
+			"projects":      projects,
+			"owner":         owner,
+			"current_owner": currentOwner,
+			"ram_gb":        ramGB,
+			"ram_slots":     ramSlots,
+			"disks":         diskData,
+			"vcpu":          vcpu,
+			"gpus":          gpuData,
+			"gpu_slots":     gpuSlots,
+			"pcie":          pcie,
+			"collected_at":  collectedAt,
+		}
+		servers = append(servers, server)
+	}
 
-    c.JSON(http.StatusOK, servers)
+	c.JSON(http.StatusOK, servers)
+}
+
+func HandleDeleteMachineInfo(c *gin.Context) {
+	type DeleteRequest struct {
+		SystemID string `json:"system_id"`
+	}
+
+	var req DeleteRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("Error parsing JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON: " + err.Error()})
+		return
+	}
+
+	if req.SystemID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "system_id is required"})
+		return
+	}
+
+	query := `DELETE FROM server_info WHERE system_id = $1`
+
+	result, err := DB.Exec(context.Background(), query, req.SystemID)
+	if err != nil {
+		log.Printf("DB delete error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete record: " + err.Error()})
+		return
+	}
+
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"message": "No record found for the given system_id"})
+		return
+	}
+
+	log.Printf("Deleted server record with system_id: %s", req.SystemID)
+	c.JSON(http.StatusOK, gin.H{"message": "Server deleted successfully"})
 }
 
 //---------- GET /api/gpuinfo ----------
 
 func HandleGetGPUInfo(c *gin.Context) {
-    rows, err := DB.Query(context.Background(), `
+	rows, err := DB.Query(context.Background(), `
         SELECT 
             ip, gpu_cards, total, status, created_at
         FROM gpu_info
         ORDER BY created_at DESC;
     `)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        return
-    }
-    defer rows.Close()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
 
-    var gpuInfos []map[string]interface{}
+	var gpuInfos []map[string]interface{}
 
-    for rows.Next() {
-        var (
-            ip         *string
-            gpuCards   []byte
-            total      *int
-            status     *string
-            createdAt  time.Time
-        )
+	for rows.Next() {
+		var (
+			ip        *string
+			gpuCards  []byte
+			total     *int
+			status    *string
+			createdAt time.Time
+		)
 
-        err := rows.Scan(&ip, &gpuCards, &total, &status, &createdAt)
-        if err != nil {
-            c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-            return
-        }
+		err := rows.Scan(&ip, &gpuCards, &total, &status, &createdAt)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 
-        var gpuData interface{}
-        json.Unmarshal(gpuCards, &gpuData)
+		var gpuData interface{}
+		json.Unmarshal(gpuCards, &gpuData)
 
-        gpuInfo := map[string]interface{}{
-            "ip":         ip,
-            "gpu_cards":  gpuData,
-            "total":      total,
-            "status":     status,
-            "created_at": createdAt,
-        }
+		gpuInfo := map[string]interface{}{
+			"ip":         ip,
+			"gpu_cards":  gpuData,
+			"total":      total,
+			"status":     status,
+			"created_at": createdAt,
+		}
 
-        gpuInfos = append(gpuInfos, gpuInfo)
-    }
+		gpuInfos = append(gpuInfos, gpuInfo)
+	}
 
-    c.JSON(http.StatusOK, gpuInfos)
+	c.JSON(http.StatusOK, gpuInfos)
 }
 
 // -------- POST: Add a new GPU entry --------
 func HandleAddGPUInfo(c *gin.Context) {
-    type GPUInfo struct {
-        IP        string                   `json:"ip"`
-        GPUCards  []map[string]interface{}  `json:"gpu_cards"`
-        Total     int                      `json:"total"`
-        Status    string                   `json:"status"`
-    }
+	type GPUInfo struct {
+		IP       string                   `json:"ip"`
+		GPUCards []map[string]interface{} `json:"gpu_cards"`
+		Total    int                      `json:"total"`
+		Status   string                   `json:"status"`
+	}
 
-    var gpu GPUInfo
-    if err := c.ShouldBindJSON(&gpu); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON: " + err.Error()})
-        return
-    }
+	var gpu GPUInfo
+	if err := c.ShouldBindJSON(&gpu); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON: " + err.Error()})
+		return
+	}
 
-    // Marshal gpu_cards into JSON
-    gpuCardsJSON, err := json.Marshal(gpu.GPUCards)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encode GPU cards"})
-        return
-    }
+	// Marshal gpu_cards into JSON
+	gpuCardsJSON, err := json.Marshal(gpu.GPUCards)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encode GPU cards"})
+		return
+	}
 
-    _, err = DB.Exec(
-        context.Background(),
-        `INSERT INTO gpu_info (ip, gpu_cards, total, status, created_at)
+	_, err = DB.Exec(
+		context.Background(),
+		`INSERT INTO gpu_info (ip, gpu_cards, total, status, created_at)
          VALUES ($1, $2, $3, $4, NOW())`,
-        gpu.IP, gpuCardsJSON, gpu.Total, gpu.Status,
-    )
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert data: " + err.Error()})
-        return
-    }
+		gpu.IP, gpuCardsJSON, gpu.Total, gpu.Status,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert data: " + err.Error()})
+		return
+	}
 
-    c.JSON(http.StatusCreated, gin.H{"message": "GPU info added successfully"})
+	c.JSON(http.StatusCreated, gin.H{"message": "GPU info added successfully"})
 }
 
+func HandleDeleteGPUInfo(c *gin.Context) {
+	type DeleteRequest struct {
+		IP string `json:"ip"`
+	}
 
+	var req DeleteRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON: " + err.Error()})
+		return
+	}
 
+	if req.IP == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "IP address is required"})
+		return
+	}
+
+	result, err := DB.Exec(
+		context.Background(),
+		`DELETE FROM gpu_info WHERE ip = $1`,
+		req.IP,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete record: " + err.Error()})
+		return
+	}
+
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"message": "No record found for the given IP"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "GPU info deleted successfully"})
+}

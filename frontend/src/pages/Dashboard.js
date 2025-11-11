@@ -1,39 +1,43 @@
 import React, { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import { styled } from "@mui/material/styles";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell, { tableCellClasses } from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import Paper from "@mui/material/Paper";
-import Button from "@mui/material/Button";
-import TextField from "@mui/material/TextField";
-import Box from "@mui/material/Box";
-import AppBar from "@mui/material/AppBar";
-import Toolbar from "@mui/material/Toolbar";
-import Typography from "@mui/material/Typography";
-import DrawerMenu from "../components/DropdownMenu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Button,
+  TextField,
+  Box,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  Tooltip,
+  Snackbar,
+  Alert,
+} from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
 import AppBarHeader from "../components/AppBarHeader";
-
-
-const drawerWidth = 240;
+import DrawerMenu from "../components/DropdownMenu";
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
-  [`&.${tableCellClasses.head}`]: {
+  [`&.${theme.tableCellClasses?.head || "MuiTableCell-head"}`]: {
     backgroundColor: "#04325cff",
     color: theme.palette.common.white,
     fontWeight: "bold",
     fontSize: "0.8rem",
     padding: "6px 12px",
   },
-  [`&.${tableCellClasses.body}`]: {
+  [`&.${theme.tableCellClasses?.body || "MuiTableCell-body"}`]: {
     fontSize: "0.75rem",
     padding: "6px 12px",
   },
 }));
-
 
 const Dashboard = () => {
   const [servers, setServers] = useState([]);
@@ -42,9 +46,12 @@ const Dashboard = () => {
   const [editFormData, setEditFormData] = useState({});
   const [selectedCluster, setSelectedCluster] = useState("");
   const [userRole, setUserRole] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedServer, setSelectedServer] = useState(null);
+  const [toast, setToast] = useState({ open: false, msg: "", severity: "success" });
 
-  const BASE_URL = process.env.REACT_APP_API_BASE_URL;
-
+  const API_BASE = "http://localhost:8092/api/serverinfo";
+  
   // Fetch server data
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -55,7 +62,7 @@ const Dashboard = () => {
     const decoded = jwtDecode(token);
     setUserRole(decoded.role);
 
-    fetch("http://192.168.6.87:8092/api/serverinfo", {
+    fetch(API_BASE, {
       headers: {
         Authorization: token,
       },
@@ -65,7 +72,7 @@ const Dashboard = () => {
       .catch((err) => setError(err.message));
   }, []);
 
-  // Edit and Save Handlers
+  // Edit Handlers
   const handleEditClick = (rowData, index) => {
     setEditIndex(index);
     setEditFormData({ ...rowData });
@@ -80,7 +87,6 @@ const Dashboard = () => {
 
   const handleSaveClick = () => {
     const uuid = editFormData.system_id;
-
     const filteredData = {
       uuid: editFormData.system_id,
       cluster_name: editFormData.cluster_name,
@@ -91,7 +97,7 @@ const Dashboard = () => {
       gpu_slots: editFormData.gpu_slots,
     };
 
-    fetch(`http://192.168.6.87:8092/api/serverinfo/${uuid}`, {
+    fetch(`${API_BASE}/${uuid}`, {
       method: "PUT",
       mode: "cors",
       headers: {
@@ -105,19 +111,17 @@ const Dashboard = () => {
         return response.json();
       })
       .then(() => {
-        alert("Server information updated successfully!");
+        setToast({ open: true, msg: "Server info updated successfully", severity: "success" });
         setEditIndex(null);
-        // Refresh data
-        fetch("http://192.168.6.87:8092/api/serverinfo", {
+        fetch(API_BASE, {
           headers: { Authorization: localStorage.getItem("token") },
         })
           .then((res) => res.json())
           .then((data) => setServers(data))
           .catch((err) => console.error("Error refreshing data:", err));
       })
-      .catch((error) => {
-        console.error("Error updating server info:", error);
-        alert("Failed to update server info.");
+      .catch(() => {
+        setToast({ open: true, msg: "Failed to update server info", severity: "error" });
       });
   };
 
@@ -126,20 +130,53 @@ const Dashboard = () => {
     setEditFormData({});
   };
 
+  // Delete Handlers
+  const handleDeleteClick = (server) => {
+    setSelectedServer(server);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setConfirmOpen(false);
+    if (!selectedServer) return;
+
+    try {
+      const res = await fetch(API_BASE, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ system_id: selectedServer.system_id }),
+      });
+
+      if (!res.ok) throw new Error("Failed to delete record");
+
+      setServers((prev) =>
+        prev.filter((srv) => srv.system_id !== selectedServer.system_id)
+      );
+      setToast({ open: true, msg: "Server deleted successfully", severity: "success" });
+    } catch (e) {
+      console.error(e);
+      setToast({ open: true, msg: "Failed to delete server", severity: "error" });
+    } finally {
+      setSelectedServer(null);
+    }
+  };
+
   return (
     <Box sx={{ display: "flex" }}>
       {/* Top App Bar */}
       <AppBarHeader />
 
-      {/* Permanent Drawer (Sidebar) */}
+      {/* Sidebar */}
       <DrawerMenu
         selectedCluster={selectedCluster}
         setSelectedCluster={setSelectedCluster}
       />
 
-      {/* Main Content Area */}
-      <Box>
-         
+      {/* Main Content */}
+      <Box sx={{ flexGrow: 1, p: 3 }}>
         {error && <p style={{ color: "red" }}>{error}</p>}
 
         <TableContainer component={Paper}>
@@ -168,7 +205,7 @@ const Dashboard = () => {
               {servers.map((s, index) => {
                 const isEditing = editIndex === index;
                 return (
-                  <TableRow key={s.id || index}>
+                  <TableRow key={s.system_id || index}>
                     <StyledTableCell>
                       {isEditing ? (
                         <TextField
@@ -182,6 +219,7 @@ const Dashboard = () => {
                         s.cluster_name
                       )}
                     </StyledTableCell>
+
                     <StyledTableCell align="center">{s.server_name}</StyledTableCell>
                     <StyledTableCell align="center">{s.vcpu}</StyledTableCell>
                     <StyledTableCell align="center">{s.ram_gb}</StyledTableCell>
@@ -262,6 +300,7 @@ const Dashboard = () => {
                         s.projects
                       )}
                     </StyledTableCell>
+
                     {userRole === "admin" && (
                       <StyledTableCell align="center">
                         {isEditing ? (
@@ -285,15 +324,29 @@ const Dashboard = () => {
                             </Button>
                           </>
                         ) : (
-                          <Button
-                            variant="contained"
-                            color="primary"
-                            size="small"
-                            onClick={() => handleEditClick(s, index)}
-                            disabled={editIndex !== null}
-                          >
-                            EDIT
-                          </Button>
+                          <>
+                            <Button
+                              variant="contained"
+                              color="primary"
+                              size="small"
+                              onClick={() => handleEditClick(s, index)}
+                              sx={{ mr: 1 }}
+                              disabled={editIndex !== null}
+                            >
+                              EDIT
+                            </Button>
+                            <Tooltip title="Delete Server">
+                              <IconButton
+                                onClick={() => handleDeleteClick(s)}
+                                sx={{
+                                  color: "grey.600",
+                                  "&:hover": { color: "red" },
+                                }}
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </>
                         )}
                       </StyledTableCell>
                     )}
@@ -304,6 +357,38 @@ const Dashboard = () => {
           </Table>
         </TableContainer>
       </Box>
+
+      {/* Confirm Delete Dialog */}
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+        <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogContent dividers>
+          Are you sure you want to delete{" "}
+          <b>{selectedServer?.server_name}</b>?
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={handleConfirmDelete}>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Toast */}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={3000}
+        onClose={() => setToast((t) => ({ ...t, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setToast((t) => ({ ...t, open: false }))}
+          severity={toast.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {toast.msg}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

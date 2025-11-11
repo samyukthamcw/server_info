@@ -27,7 +27,7 @@ export default function Signup() {
 
   const handleSignup = async (e) => {
     e.preventDefault();
-    const res = await fetch("http://192.168.6.87:8092/register", {
+    const res = await fetch("http://localhost:8092/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password, email, role }),

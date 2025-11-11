@@ -155,7 +155,7 @@ func sendToBackend(hw HardwareInfo) {
 	jsonData, _ := json.MarshalIndent(hw, "", "  ")
 
 	// 🔹 Replace with your backend endpoint:
-	url := "http://192.168.6.87:8090/api/machineinfo"
+	url := "http://localhost:8092/machineinfo"
 
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
