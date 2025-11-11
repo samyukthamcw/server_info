@@ -311,7 +311,7 @@ func HandleDeleteMachineInfo(c *gin.Context) {
 func HandleGetGPUInfo(c *gin.Context) {
 	rows, err := DB.Query(context.Background(), `
         SELECT 
-            ip, gpu_cards, total, status, created_at
+            id, gpu_cards, total, status, created_at
         FROM gpu_info
         ORDER BY created_at DESC;
     `)
@@ -325,14 +325,14 @@ func HandleGetGPUInfo(c *gin.Context) {
 
 	for rows.Next() {
 		var (
-			ip        *string
+			id        int
 			gpuCards  []byte
 			total     *int
 			status    *string
 			createdAt time.Time
 		)
 
-		err := rows.Scan(&ip, &gpuCards, &total, &status, &createdAt)
+		err := rows.Scan(&id, &gpuCards, &total, &status, &createdAt)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -342,7 +342,7 @@ func HandleGetGPUInfo(c *gin.Context) {
 		json.Unmarshal(gpuCards, &gpuData)
 
 		gpuInfo := map[string]interface{}{
-			"ip":         ip,
+			"id":         id,
 			"gpu_cards":  gpuData,
 			"total":      total,
 			"status":     status,
@@ -358,7 +358,6 @@ func HandleGetGPUInfo(c *gin.Context) {
 // -------- POST: Add a new GPU entry --------
 func HandleAddGPUInfo(c *gin.Context) {
 	type GPUInfo struct {
-		IP       string                   `json:"ip"`
 		GPUCards []map[string]interface{} `json:"gpu_cards"`
 		Total    int                      `json:"total"`
 		Status   string                   `json:"status"`
@@ -370,30 +369,32 @@ func HandleAddGPUInfo(c *gin.Context) {
 		return
 	}
 
-	// Marshal gpu_cards into JSON
 	gpuCardsJSON, err := json.Marshal(gpu.GPUCards)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encode GPU cards"})
 		return
 	}
 
-	_, err = DB.Exec(
+	var newID int
+	err = DB.QueryRow(
 		context.Background(),
-		`INSERT INTO gpu_info (ip, gpu_cards, total, status, created_at)
-         VALUES ($1, $2, $3, $4, NOW())`,
-		gpu.IP, gpuCardsJSON, gpu.Total, gpu.Status,
-	)
+		`INSERT INTO gpu_info (gpu_cards, total, status, created_at)
+         VALUES ($1, $2, $3, NOW())
+         RETURNING id`,
+		gpuCardsJSON, gpu.Total, gpu.Status,
+	).Scan(&newID)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert data: " + err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "GPU info added successfully"})
+	c.JSON(http.StatusCreated, gin.H{"message": "GPU info added successfully", "id": newID})
 }
 
 func HandleDeleteGPUInfo(c *gin.Context) {
 	type DeleteRequest struct {
-		IP string `json:"ip"`
+		ID int `json:"id"`
 	}
 
 	var req DeleteRequest
@@ -402,15 +403,15 @@ func HandleDeleteGPUInfo(c *gin.Context) {
 		return
 	}
 
-	if req.IP == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "IP address is required"})
+	if req.ID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID is required"})
 		return
 	}
 
 	result, err := DB.Exec(
 		context.Background(),
-		`DELETE FROM gpu_info WHERE ip = $1`,
-		req.IP,
+		`DELETE FROM gpu_info WHERE id = $1`,
+		req.ID,
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete record: " + err.Error()})
@@ -419,7 +420,7 @@ func HandleDeleteGPUInfo(c *gin.Context) {
 
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"message": "No record found for the given IP"})
+		c.JSON(http.StatusNotFound, gin.H{"message": "No record found for the given ID"})
 		return
 	}
 

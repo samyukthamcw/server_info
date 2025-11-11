@@ -29,9 +29,8 @@ const GPU = () => {
   const [selectedCluster, setSelectedCluster] = useState("");
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [selectedIP, setSelectedIP] = useState("");
+  const [selectedID, setSelectedID] = useState(null);
   const [form, setForm] = useState({
-    ip: "",
     status: "",
     total: "",
     gpu_cards: [{ model: "", memory_gb: "" }],
@@ -79,7 +78,6 @@ const GPU = () => {
   // Add Dialog control
   const handleAddOpen = () => {
     setForm({
-      ip: "",
       status: "",
       total: "",
       gpu_cards: [{ model: "", memory_gb: "" }],
@@ -117,17 +115,11 @@ const GPU = () => {
       return;
     }
 
-    if (!form.ip.trim()) {
-      setToast({ open: true, msg: "IP address is required", severity: "warning" });
-      return;
-    }
-
     const sanitizedCards = form.gpu_cards
       .map((c) => ({ model: c.model.trim(), memory_gb: Number(c.memory_gb) || 0 }))
       .filter((c) => c.model);
 
     const payload = {
-      ip: form.ip.trim(),
       status: form.status.trim() || "unknown",
       gpu_cards: sanitizedCards,
       total:
@@ -148,8 +140,10 @@ const GPU = () => {
       });
 
       if (!res.ok) throw new Error("POST failed");
+      const newItem = await res.json();
 
-      setGpuData((prev) => [payload, ...prev]);
+      // Append new row with returned id
+      setGpuData((prev) => [{ id: newItem.id, ...payload }, ...prev]);
       setToast({ open: true, msg: "Row added successfully", severity: "success" });
       setOpen(false);
     } catch (e) {
@@ -161,14 +155,14 @@ const GPU = () => {
   };
 
   // Delete Handlers
-  const handleDeleteClick = (ip) => {
-    setSelectedIP(ip);
+  const handleDeleteClick = (id) => {
+    setSelectedID(id);
     setConfirmOpen(true);
   };
 
   const handleConfirmDelete = async () => {
     setConfirmOpen(false);
-    if (!selectedIP) return;
+    if (!selectedID) return;
 
     try {
       const res = await fetch(API_BASE, {
@@ -177,18 +171,18 @@ const GPU = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ ip: selectedIP }),
+        body: JSON.stringify({ id: selectedID }),
       });
 
       if (!res.ok) throw new Error("Failed to delete record");
 
-      setGpuData((prev) => prev.filter((row) => row.ip !== selectedIP));
+      setGpuData((prev) => prev.filter((row) => row.id !== selectedID));
       setToast({ open: true, msg: "Record deleted successfully", severity: "success" });
     } catch (e) {
       console.error(e);
       setToast({ open: true, msg: "Failed to delete record", severity: "error" });
     } finally {
-      setSelectedIP("");
+      setSelectedID(null);
     }
   };
 
@@ -213,7 +207,7 @@ const GPU = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <StyledTableCell align="center">IP Address</StyledTableCell>
+                <StyledTableCell align="center">ID</StyledTableCell>
                 <StyledTableCell align="center">GPU Cards</StyledTableCell>
                 <StyledTableCell align="center">Total</StyledTableCell>
                 <StyledTableCell align="center">Status</StyledTableCell>
@@ -231,7 +225,7 @@ const GPU = () => {
               ) : (
                 gpuData.map((row, index) => (
                   <TableRow key={index}>
-                    <StyledTableCell align="center">{row.ip || "-"}</StyledTableCell>
+                    <StyledTableCell align="center">{row.id}</StyledTableCell>
                     <StyledTableCell align="center">
                       {Array.isArray(row.gpu_cards) && row.gpu_cards.length > 0
                         ? row.gpu_cards.map((gpu, i) => (
@@ -248,7 +242,7 @@ const GPU = () => {
                       <StyledTableCell align="center">
                         <Tooltip title="Delete Record">
                           <IconButton
-                            onClick={() => handleDeleteClick(row.ip)}
+                            onClick={() => handleDeleteClick(row.id)}
                             sx={{
                               color: "grey.600",
                               "&:hover": { color: "red" },
@@ -272,13 +266,6 @@ const GPU = () => {
         <DialogTitle>Add GPU Row</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              label="IP Address"
-              value={form.ip}
-              onChange={(e) => setForm((p) => ({ ...p, ip: e.target.value }))}
-              fullWidth
-              required
-            />
             <TextField
               label="Status"
               value={form.status}
@@ -338,7 +325,7 @@ const GPU = () => {
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
         <DialogTitle>Confirm Deletion</DialogTitle>
         <DialogContent dividers>
-          <Typography>Are you sure you want to delete GPU entry for IP: {selectedIP}?</Typography>
+          <Typography>Are you sure you want to delete GPU entry with ID: {selectedID}?</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
