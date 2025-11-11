@@ -49,7 +49,7 @@ const AppBarHeader = () => {
 
           {/* Title */}
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            FTTU Cluster Machine Info
+            FCTU Cluster Machine Info
           </Typography>
 
           {/* Conditional Buttons */}

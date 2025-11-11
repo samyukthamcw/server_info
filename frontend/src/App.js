@@ -30,13 +30,32 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 // ---- Wrapper for Background ----
 function BackgroundWrapper({ children }) {
   const location = useLocation();
-  const isAuthPage = location.pathname === "/login" || location.pathname === "/signup";
+  const isAuthPage =
+    location.pathname === "/login" || location.pathname === "/signup";
+
+  React.useEffect(() => {
+    if (isAuthPage) {
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto";
+      document.documentElement.style.overflow = "auto";
+    }
+
+    return () => {
+      document.body.style.overflow = "auto";
+      document.documentElement.style.overflow = "auto";
+    };
+  }, [isAuthPage]);
 
   return (
     <Box
       sx={{
-        padding: 3,
-        minHeight: "100vh",
+        position: "fixed",           // ✅ anchor to full viewport
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100dvh",            // ✅ fills screen correctly
         backgroundImage: isAuthPage ? 'url("/background.jpg")' : "none",
         backgroundSize: "cover",
         backgroundPosition: "center",
@@ -44,12 +63,18 @@ function BackgroundWrapper({ children }) {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
+        overflow: "hidden",
+        margin: 0,
+        padding: 0,
       }}
     >
       {children}
     </Box>
   );
 }
+
+
+
 
 // ---- Main App ----
 export default function App() {

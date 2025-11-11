@@ -16,6 +16,8 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useNavigate } from "react-router-dom"; 
+import AppBarHeader from "../components/AppBarHeader";
+
 
 export default function Signup() {
   const [username, setUsername] = useState("");
@@ -45,6 +47,7 @@ export default function Signup() {
 
   return (
     <Container component="main" maxWidth="xs">
+      <AppBarHeader />
       <Paper
         elevation={6}
         sx={{

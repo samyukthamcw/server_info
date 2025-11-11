@@ -41,7 +41,7 @@ func main() {
 		// Server info routes
 		api.GET("/serverinfo", HandleGetServerInfo)
 		api.PUT("/serverinfo/:uuid", UpdateServerInfo)
-		api.DELETE("/serverinfo/:uuid", HandleDeleteMachineInfo)
+		api.DELETE("/serverinfo", HandleDeleteMachineInfo)
 		api.GET("/gpuinfo", HandleGetGPUInfo)
 		api.POST("/gpuinfo", HandleAddGPUInfo)
 		api.DELETE("/gpuinfo", HandleDeleteGPUInfo)
