@@ -180,9 +180,9 @@ const Dashboard = () => {
         sx={{
           flexGrow: 1,
           position: "absolute",
-          top: "150px",  
-          left: "270px",      
-          width: "calc(100% - 300px)", 
+          top: "150px",
+          left: "270px",
+          width: "calc(100% - 300px)",
           paddingRight: "40px",
         }}
       >
@@ -190,10 +190,10 @@ const Dashboard = () => {
 
         <TableContainer component={Paper} sx={{
           width: "100%",
-          overflowX: "hidden", 
+          overflowX: "hidden",
           overflowY: "hidden",
-          scrollbarWidth: "none", 
-          "&::-webkit-scrollbar": { display: "none" }, 
+          scrollbarWidth: "none",
+          "&::-webkit-scrollbar": { display: "none" },
         }}>
           <Table>
             <TableHead>
@@ -217,157 +217,165 @@ const Dashboard = () => {
             </TableHead>
 
             <TableBody>
-              {servers.map((s, index) => {
-                const isEditing = editIndex === index;
-                return (
-                  <TableRow key={s.system_id || index}>
-                    <StyledTableCell>
-                      {isEditing ? (
-                        <TextField
-                          value={editFormData.cluster_name || ""}
-                          onChange={(e) =>
-                            handleInputChange(e, "cluster_name")
-                          }
-                          variant="standard"
-                        />
-                      ) : (
-                        s.cluster_name
-                      )}
-                    </StyledTableCell>
-
-                    <StyledTableCell align="center">{s.server_name}</StyledTableCell>
-                    <StyledTableCell align="center">{s.vcpu}</StyledTableCell>
-                    <StyledTableCell align="center">{s.ram_gb}</StyledTableCell>
-                    <StyledTableCell align="center">
-                      {isEditing ? (
-                        <TextField
-                          value={editFormData.ram_slots || ""}
-                          onChange={(e) => handleInputChange(e, "ram_slots")}
-                          variant="standard"
-                        />
-                      ) : (
-                        s.ram_slots
-                      )}
-                    </StyledTableCell>
-                    <StyledTableCell align="center">
-                      {Array.isArray(s.disks)
-                        ? s.disks.map((d, i) => (
-                          <div key={i}>
-                            <b>{d.name}</b> ({d.model},{" "}
-                            {d.size_gb ? d.size_gb.toFixed(1) : "N/A"} GB)
-                          </div>
-                        ))
-                        : s.disks}
-                    </StyledTableCell>
-                    <StyledTableCell align="center">
-                      {Array.isArray(s.gpus)
-                        ? s.gpus.map((g, i) => (
-                          <div key={i}>
-                            <b>{g.vendor}</b> - {g.model}
-                          </div>
-                        ))
-                        : s.gpus}
-                    </StyledTableCell>
-                    <StyledTableCell align="center">
-                      {isEditing ? (
-                        <TextField
-                          value={editFormData.gpu_slots || ""}
-                          onChange={(e) => handleInputChange(e, "gpu_slots")}
-                          variant="standard"
-                        />
-                      ) : (
-                        s.gpu_slots
-                      )}
-                    </StyledTableCell>
-                    <StyledTableCell align="center">{s.ip}</StyledTableCell>
-                    <StyledTableCell align="center">
-                      {isEditing ? (
-                        <TextField
-                          value={editFormData.current_owner || ""}
-                          onChange={(e) =>
-                            handleInputChange(e, "current_owner")
-                          }
-                          variant="standard"
-                        />
-                      ) : (
-                        s.current_owner
-                      )}
-                    </StyledTableCell>
-                    <StyledTableCell align="center">
-                      {isEditing ? (
-                        <TextField
-                          value={editFormData.owner || ""}
-                          onChange={(e) => handleInputChange(e, "owner")}
-                          variant="standard"
-                        />
-                      ) : (
-                        s.owner
-                      )}
-                    </StyledTableCell>
-                    <StyledTableCell align="center">
-                      {isEditing ? (
-                        <TextField
-                          value={editFormData.projects || ""}
-                          onChange={(e) => handleInputChange(e, "projects")}
-                          variant="standard"
-                        />
-                      ) : (
-                        s.projects
-                      )}
-                    </StyledTableCell>
-
-                    {userRole === "admin" && (
-                      <StyledTableCell align="center">
+              {!servers || servers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={userRole === "admin" ? 12 : 11} align="center">
+                    No cluster machine info available.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                servers.map((s, index) => {
+                  const isEditing = editIndex === index;
+                  return (
+                    <TableRow key={s.system_id || index}>
+                      <StyledTableCell>
                         {isEditing ? (
-                          <>
-                            <Button
-                              variant="contained"
-                              color="success"
-                              size="small"
-                              onClick={() => handleSaveClick(s)}
-                              sx={{ mr: 1 }}
-                            >
-                              SAVE
-                            </Button>
-                            <Button
-                              variant="outlined"
-                              color="error"
-                              size="small"
-                              onClick={handleCancelClick}
-                            >
-                              CANCEL
-                            </Button>
-                          </>
+                          <TextField
+                            value={editFormData.cluster_name || ""}
+                            onChange={(e) =>
+                              handleInputChange(e, "cluster_name")
+                            }
+                            variant="standard"
+                          />
                         ) : (
-                          <>
-                            <Button
-                              variant="contained"
-                              color="primary"
-                              size="small"
-                              onClick={() => handleEditClick(s, index)}
-                              sx={{ mr: 1 }}
-                              disabled={editIndex !== null}
-                            >
-                              EDIT
-                            </Button>
-                            <Tooltip title="Delete Server">
-                              <IconButton
-                                onClick={() => handleDeleteClick(s)}
-                                sx={{
-                                  color: "grey.600",
-                                  "&:hover": { color: "red" },
-                                }}
-                              >
-                                <DeleteIcon />
-                              </IconButton>
-                            </Tooltip>
-                          </>
+                          s.cluster_name
                         )}
                       </StyledTableCell>
-                    )}
-                  </TableRow>
-                );
-              })}
+
+                      <StyledTableCell align="center">{s.server_name}</StyledTableCell>
+                      <StyledTableCell align="center">{s.vcpu}</StyledTableCell>
+                      <StyledTableCell align="center">{s.ram_gb}</StyledTableCell>
+                      <StyledTableCell align="center">
+                        {isEditing ? (
+                          <TextField
+                            value={editFormData.ram_slots || ""}
+                            onChange={(e) => handleInputChange(e, "ram_slots")}
+                            variant="standard"
+                          />
+                        ) : (
+                          s.ram_slots
+                        )}
+                      </StyledTableCell>
+                      <StyledTableCell align="center">
+                        {Array.isArray(s.disks)
+                          ? s.disks.map((d, i) => (
+                            <div key={i}>
+                              <b>{d.name}</b> ({d.model},{" "}
+                              {d.size_gb ? d.size_gb.toFixed(1) : "N/A"} GB)
+                            </div>
+                          ))
+                          : s.disks}
+                      </StyledTableCell>
+                      <StyledTableCell align="center">
+                        {Array.isArray(s.gpus)
+                          ? s.gpus.map((g, i) => (
+                            <div key={i}>
+                              <b>{g.vendor}</b> - {g.model}
+                            </div>
+                          ))
+                          : s.gpus}
+                      </StyledTableCell>
+                      <StyledTableCell align="center">
+                        {isEditing ? (
+                          <TextField
+                            value={editFormData.gpu_slots || ""}
+                            onChange={(e) => handleInputChange(e, "gpu_slots")}
+                            variant="standard"
+                          />
+                        ) : (
+                          s.gpu_slots
+                        )}
+                      </StyledTableCell>
+                      <StyledTableCell align="center">{s.ip}</StyledTableCell>
+                      <StyledTableCell align="center">
+                        {isEditing ? (
+                          <TextField
+                            value={editFormData.current_owner || ""}
+                            onChange={(e) =>
+                              handleInputChange(e, "current_owner")
+                            }
+                            variant="standard"
+                          />
+                        ) : (
+                          s.current_owner
+                        )}
+                      </StyledTableCell>
+                      <StyledTableCell align="center">
+                        {isEditing ? (
+                          <TextField
+                            value={editFormData.owner || ""}
+                            onChange={(e) => handleInputChange(e, "owner")}
+                            variant="standard"
+                          />
+                        ) : (
+                          s.owner
+                        )}
+                      </StyledTableCell>
+                      <StyledTableCell align="center">
+                        {isEditing ? (
+                          <TextField
+                            value={editFormData.projects || ""}
+                            onChange={(e) => handleInputChange(e, "projects")}
+                            variant="standard"
+                          />
+                        ) : (
+                          s.projects
+                        )}
+                      </StyledTableCell>
+
+                      {userRole === "admin" && (
+                        <StyledTableCell align="center">
+                          {isEditing ? (
+                            <>
+                              <Button
+                                variant="contained"
+                                color="success"
+                                size="small"
+                                onClick={() => handleSaveClick(s)}
+                                sx={{ mr: 1 }}
+                              >
+                                SAVE
+                              </Button>
+                              <Button
+                                variant="outlined"
+                                color="error"
+                                size="small"
+                                onClick={handleCancelClick}
+                              >
+                                CANCEL
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                variant="contained"
+                                color="primary"
+                                size="small"
+                                onClick={() => handleEditClick(s, index)}
+                                sx={{ mr: 1 }}
+                                disabled={editIndex !== null}
+                              >
+                                EDIT
+                              </Button>
+                              <Tooltip title="Delete Server">
+                                <IconButton
+                                  onClick={() => handleDeleteClick(s)}
+                                  sx={{
+                                    color: "grey.600",
+                                    "&:hover": { color: "red" },
+                                  }}
+                                >
+                                  <DeleteIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </>
+                          )}
+                        </StyledTableCell>
+                      )}
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </TableContainer>

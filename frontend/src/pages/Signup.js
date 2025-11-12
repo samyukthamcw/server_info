@@ -38,7 +38,7 @@ export default function Signup() {
 
     if (res.ok) {
       alert("Registration successful! Please log in.");
-      navigate("/login");
+      navigate("/");
     } else {
       alert(data.error || "Registration failed");
     }
@@ -140,7 +140,7 @@ export default function Signup() {
           </Button>
 
           <Link
-            href="/login"
+            href="/"
             variant="body2"
             display="block"
             textAlign="center"

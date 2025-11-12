@@ -15,7 +15,7 @@ const AppBarHeader = () => {
 
   const handleLogout = () => {
     logout();
-    navigate("/login");
+    navigate("/");
   };
 
   const decoded = localStorage.getItem("token")
@@ -54,7 +54,7 @@ const AppBarHeader = () => {
 
           {/* Conditional Buttons */}
           {!isAuthenticated() ? (
-            <Button color="inherit" component={Link} to="/login">
+            <Button color="inherit" component={Link} to="/">
               Login
             </Button>
           ) : (

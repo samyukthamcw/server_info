@@ -22,7 +22,7 @@ import { isAuthenticated, getUserRole, logout } from "./utils/auth";
 // ---- ProtectedRoute ----
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const role = getUserRole();
-  if (!isAuthenticated()) return <Navigate to="/login" />;
+  if (!isAuthenticated()) return <Navigate to="/" />;
   if (allowedRoles && !allowedRoles.includes(role)) return <h3>Access Denied 🚫</h3>;
   return children;
 };
@@ -31,7 +31,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 function BackgroundWrapper({ children }) {
   const location = useLocation();
   const isAuthPage =
-    location.pathname === "/login" || location.pathname === "/signup";
+    location.pathname === "/" || location.pathname === "/signup";
 
   React.useEffect(() => {
     if (isAuthPage) {
@@ -82,7 +82,7 @@ export default function App() {
     <Router>
       <BackgroundWrapper>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route
             path="/dashboard"
