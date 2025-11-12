@@ -154,7 +154,7 @@ func collectSystemInfo() HardwareInfo {
 func sendToBackend(hw HardwareInfo) {
 	jsonData, _ := json.MarshalIndent(hw, "", "  ")
 
-	// 🔹 Replace with your backend endpoint:
+	//  Replace with your backend endpoint:
 	url := "http://localhost:8092/machineinfo"
 
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
